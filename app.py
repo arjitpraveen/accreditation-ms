@@ -12,11 +12,39 @@ init_accreditation_db()
 
 st.title("🎓 Accreditation Management System")
 
+st.markdown(
+    "<span style='color: red; font-weight: bold;'>‼️ Click the <span style='font-family: monospace;'>&gt;&gt;</span> button on the left sidebar to expand it and see the options.</span>",
+    unsafe_allow_html=True
+)
+
+# st.markdown("""
+# **Project Members:**  
+# - ARJIT PRAVEEN KUMAR *(1BY23CS030)*  
+# - FIRDOUS UMME HANI *(1BY23CS063)*
+# """)
+
 st.markdown("""
-**Project Members:**  
-- ARJIT PRAVEEN KUMAR *(1BY23CS030)*  
-- FIRDOUS UMME HANI *(1BY23CS063)*
-""")
+**Project Members**
+<table style='width: 100%; border-collapse: collapse;'>
+  <thead>
+    <tr style='background-color: #f2f2f2;'>
+      <th style='text-align: left; padding: 8px;'>Name</th>
+      <th style='text-align: left; padding: 8px;'>USN</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style='padding: 8px;'>ARJIT PRAVEEN KUMAR</td>
+      <td style='padding: 8px;'>1BY23CS030</td>
+    </tr>
+    <tr>
+      <td style='padding: 8px;'>FIRDOUS UMME HANI</td>
+      <td style='padding: 8px;'>1BY23CS063</td>
+    </tr>
+  </tbody>
+</table>
+""", unsafe_allow_html=True)
+
 
 st.sidebar.header("Choose Action")
 action = st.sidebar.radio("Go to", [
@@ -61,7 +89,6 @@ elif action == "Add Accreditation":
             add_accreditation(institution_id, body, level, str(valid_from), str(valid_until), status)
             st.success("Accreditation added successfully.")
 
-# View Data
 # View Data
 elif action == "View Data":
     st.subheader("🏫 Institutions")
