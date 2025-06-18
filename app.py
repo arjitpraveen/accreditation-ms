@@ -106,6 +106,7 @@ elif action == "View Data":
     acc_df = pd.DataFrame(accs, columns=accreditation_columns)
     st.dataframe(acc_df, use_container_width=True)
 
+#delete Data
 elif action == "Delete Data":
     st.subheader("❌ Delete Records")
 
@@ -134,6 +135,39 @@ elif action == "Delete Data":
             if st.button("Delete Accreditation"):
                 delete_accreditation(acc_id)
                 st.success(f"Accreditation ID {acc_id} deleted.")
+
+    # -----------------------
+    # 🔥 DELETE ALL SECTION
+    # -----------------------
+    st.markdown("---")
+    st.markdown("### 🗑️ Danger Zone")
+
+    with st.expander("⚠️ Delete ALL Data (Irreversible)", expanded=False):
+        st.warning("This will permanently delete **all institutions and all accreditations**. Proceed with caution.")
+        delete_all = st.button("🔥 Delete ALL Institutions & Accreditations")
+
+        if delete_all:
+            confirm = st.checkbox("✅ Yes, I understand and want to delete everything")
+
+            if confirm:
+                try:
+                    # Connect and delete from both databases
+                    conn_in = sqlite3.connect("institution.db")
+                    conn_acc = sqlite3.connect("accreditation.db")
+
+                    conn_in.execute("DELETE FROM institutions")
+                    conn_acc.execute("DELETE FROM accreditations")
+
+                    conn_in.commit()
+                    conn_acc.commit()
+                    conn_in.close()
+                    conn_acc.close()
+
+                    st.success("✅ All data deleted successfully!")
+                except Exception as e:
+                    st.error(f"❌ Error occurred: {e}")
+            else:
+                st.info("Please confirm the checkbox to proceed.")
 
 # ---------------------------------------------------------------------
 
