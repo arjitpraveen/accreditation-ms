@@ -1,7 +1,8 @@
 import streamlit as st
 import datetime
 from db_institution import init_institution_db, add_institution, get_all_institutions, delete_institution
-from db_accreditation import init_accreditation_db, add_accreditation, get_all_accreditations, delete_accreditation
+from db_accreditation import init_accreditation_db, add_accreditation, get_all_accreditations, delete_accreditation, init_renewal_db, add_renewal, get_all_renewals
+
 import pandas as pd  # Make sure this is at the top of app.py
 import sqlite3
 
@@ -9,6 +10,8 @@ import sqlite3
 # Initialize databases
 init_institution_db()
 init_accreditation_db()
+init_renewal_db()
+
 
 st.title("🎓 Accreditation Management System")
 
@@ -17,39 +20,23 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# st.markdown("""
-# **Project Members:**  
-# - ARJIT PRAVEEN KUMAR *(1BY23CS030)*  
-# - FIRDOUS UMME HANI *(1BY23CS063)*
-# """)
+st.markdown("Project members: <span style='color: blue; font-weight: bold;'>ARJIT PRAVEEN KUMAR (1BY23CS030), FIRDOUS UMME HANI (1BY23CS063)</span>", unsafe_allow_html=True)
 
-st.markdown("""
-**Project Members**
-<table style='width: 100%; border-collapse: collapse;'>
-  <thead>
-    <tr style='background-color: #f2f2f2;'>
-      <th style='text-align: left; padding: 8px;'>Name</th>
-      <th style='text-align: left; padding: 8px;'>USN</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style='padding: 8px;'>ARJIT PRAVEEN KUMAR</td>
-      <td style='padding: 8px;'>1BY23CS030</td>
-    </tr>
-    <tr>
-      <td style='padding: 8px;'>FIRDOUS UMME HANI</td>
-      <td style='padding: 8px;'>1BY23CS063</td>
-    </tr>
-  </tbody>
-</table>
-""", unsafe_allow_html=True)
 
+# st.sidebar.header("Choose Action")
+# action = st.sidebar.radio("Go to", [
+#     "Add Institution", "Add Accreditation", "View Data", "Delete Data", "Query Results"
+# ])
 
 st.sidebar.header("Choose Action")
-action = st.sidebar.radio("Go to", [
-    "Add Institution", "Add Accreditation", "View Data", "Delete Data", "Query Results"
+action = st.sidebar.selectbox("Choose Action", [
+    "Add Institution",
+    "Add Accreditation",
+    "View Data",
+    "Delete Data",
+    "Renewals"  # 👈 add this
 ])
+
 
 
 # Add Institution
@@ -87,11 +74,18 @@ elif action == "Add Accreditation":
 
         if st.button("Add Accreditation"):
             add_accreditation(institution_id, body, level, str(valid_from), str(valid_until), status)
+            # Get the accreditation_id of the last inserted accreditation
+            conn = sqlite3.connect('accreditation.db')
+            c = conn.cursor()
+            c.execute('SELECT MAX(accreditation_id) FROM accreditations')
+            accreditation_id = c.fetchone()[0]
+            conn.close()
+            add_renewal(accreditation_id, institution_id, body, level, str(valid_from), str(valid_until))
             st.success("Accreditation added successfully.")
 
 # View Data
 elif action == "View Data":
-    st.subheader("🏫 Institutions")
+    st.subheader("�� Institutions")
     institutions = get_all_institutions()
     institution_columns = ["ID", "Name", "Type", "Location", "Email"]
     institution_df = pd.DataFrame(institutions, columns=institution_columns)
@@ -221,3 +215,34 @@ elif action == "Query Results":
 
     conn_in.close()
     conn_acc.close()
+
+elif action == "Renewals":
+    st.subheader("🔄 Accreditation Renewals Table")
+    # Get all renewals and join with institution name
+    renewals = get_all_renewals()
+    institutions = {i[0]: i[1] for i in get_all_institutions()}  # id -> name
+    # Columns: renewal_id, accreditation_id, institution_id, body_name, level, valid_from, valid_until, renewal_date
+    renewal_columns = [
+        "Renewal ID", "Accreditation ID", "Institution ID", "Accreditation Body", "Level",
+        "Valid From", "Valid Until", "Renewal Date"
+    ]
+    renewal_df = pd.DataFrame(renewals, columns=renewal_columns)
+    renewal_df["Institution Name"] = renewal_df["Institution ID"].map(institutions)
+    # Reorder columns for display
+    display_columns = [
+        "Renewal ID", "Institution Name", "Accreditation Body", "Level",
+        "Valid From", "Valid Until", "Renewal Date"
+    ]
+    # --- Filters ---
+    col1, col2 = st.columns(2)
+    with col1:
+        inst_filter = st.selectbox("Search/Filter by Institution", ["All"] + sorted(renewal_df["Institution Name"].dropna().unique()))
+    with col2:
+        acc_filter = st.selectbox("Filter by Accreditation Body", ["All"] + sorted(renewal_df["Accreditation Body"].dropna().unique()))
+    filtered_df = renewal_df.copy()
+    if inst_filter != "All":
+        filtered_df = filtered_df[filtered_df["Institution Name"] == inst_filter]
+    if acc_filter != "All":
+        filtered_df = filtered_df[filtered_df["Accreditation Body"] == acc_filter]
+    st.dataframe(filtered_df[display_columns].reset_index(drop=True), use_container_width=True)
+
